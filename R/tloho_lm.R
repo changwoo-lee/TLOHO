@@ -17,6 +17,7 @@
 #' @param THIN thin-in rate. The final number of posterior sample is nsamples = (MCMC-BURNIN)/THIN.
 #' @param Dahl bool, whether to calculate Dahl's cluster estimate after MCMC. Note that when p is large, this can take longer than MCMC itself
 #' @param seed seed.
+#' @import igraph salso mgcv
 #'
 #' @return  A list containing:\tabular{ll}{
 #'    \code{beta_out} \tab nsamples by p matrix, posterior samples of beta\cr

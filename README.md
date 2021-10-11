@@ -28,14 +28,14 @@ devtools::install_github("changwoo-lee/TLOHO")
 
 ``` r
 library(TLOHO)
-library(fields)
-data = generate_simdata(n=900, rhox = 0, SNR = 4, option = "twoclusters")
-image.plot(matrix(data$beta.true, 30, 30))
-require(igraph)
-# construct lattice graph ----------------
-graph0 = make_lattice(c(30,30))
+data = generate_simdata(n=100, rhox = 0, SNR = 4, option = "twoclusters")
 
-fit <- tloho_lm(data$Y, data$X, graph0, Dahl = T)
+library(fields) # for image.plot
+image.plot(matrix(data$beta.true, 30, 30))
+
+graph0 = make_lattice(c(30,30))# construct lattice graph
+
+fit <- tloho_lm(data$Y, data$X, graph0, Dahl = T) # fit
 
 plot(fit$log_post_out, type ="l")
 plot(log(fit$tau2_out), type ="l")

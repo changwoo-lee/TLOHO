@@ -1,7 +1,7 @@
-# Specifing dependency packages...
-require(igraph)
-require(mgcv) # for mgcv::choldrop and mgcv::cholup
-require(salso) # for cluster point estimate using Dahl's method
+# Specifing dependency packages... now included in imports
+# require(igraph)
+# require(mgcv) # for mgcv::choldrop and mgcv::cholup
+# require(salso) # for cluster point estimate using Dahl's method
 
 
 # Auxiliary functions for final likelihood calculation  --------------
