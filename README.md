@@ -30,26 +30,23 @@ devtools::install_github("changwoo-lee/TLOHO")
 library(TLOHO)
 data = generate_simdata(n=100, rhox = 0, SNR = 4, option = "twoclusters")
 
-library(fields) # for image.plot
-image.plot(matrix(data$beta.true, 30, 30))
+fields::image.plot(matrix(data$beta.true, 30, 30)) # true beta image
 
-graph0 = make_lattice(c(30,30))# construct lattice graph
+graph0 = igraph::make_lattice(c(30,30))# construct lattice graph
 
 fit <- tloho_lm(data$Y, data$X, graph0, Dahl = T) # fit
 
-plot(fit$log_post_out, type ="l")
-plot(log(fit$tau2_out), type ="l")
 image.plot(matrix(fit$median_beta_est, 30, 30))
 image.plot(matrix(fit$cluster_est_Dahl, 30, 30))
 ```
 
 ``` r
-# normal means
-Y = data$beta.true + rnorm(900, sd = 1)
+# normal means model when X = I
+Y = data$beta.true + rnorm(900, sd = 0.5)
 
-image.plot(matrix(Y, 30, 30))
+image.plot(matrix(Y, 30, 30)) # noisy data
 fit2 <- tloho_lm_normalmeans(Y, graph0, Dahl = T)
 
-image.plot(matrix(fit2$mean_beta_est, 30, 30))
+image.plot(matrix(fit2$median_beta_est, 30, 30))
 image.plot(matrix(fit2$cluster_est_Dahl, 30, 30))
 ```
