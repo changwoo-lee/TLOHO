@@ -492,7 +492,7 @@ getPhi <- function(clust_vid, p){
 # avoid construction of Phi and multiplication, which takes O(kp)
 getPhi_y <- function(clust_vid, p, y){
   K = length(clust_vid)
-  Phi_y = numeric(k)
+  Phi_y = numeric(K)
   for(k in 1:K){
     Phi_y[k] = sum(y[clust_vid[[k]]]/sqrt(length(clust_vid[[k]])))
   }
