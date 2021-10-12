@@ -534,7 +534,7 @@ logHSmarginal <- function(y, sigma2, tau2){
   n = length(y)
   ybar = mean(y)
   logC = -(n-1)/2*log(2*pi*sigma2) - log(n)/2 - 1/(2*sigma2)*sum((y-ybar)^2)  # log normalizing constant
-  integral = stats::integrate(integrandft, 0, Inf, ybar = ybar, t = sqrt(tau2), data.var = data.var, n = n, rel.tol = 1e-8)$value
+  integral = stats::integrate(integrandft, 0, Inf, ybar = ybar, t = sqrt(tau2), data.var = sigma2, n = n, rel.tol = 1e-8)$value
   log(integral) + logC
 }
 integrandft <- function(u, ybar, t, data.var, n){
