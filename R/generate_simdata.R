@@ -82,5 +82,5 @@ generate_simdata <- function(n = 100, rhox = 0, SNR = 4, option = "twoclusters",
   Y <- as.numeric(X%*%beta+rnorm(n,0,sqrt(sigma2)))
   Ytest <- as.numeric(Xtest%*%beta+rnorm(ntest,0,sqrt(sigma2)))
   
-  list(Y=Y, X=X, beta.true = beta, sigma2.true = sigma2, Xtest = Xtest, Ytest = Ytest, rhox = rhox, SNR = SNR)
+  list(Y=Y, X=X, beta.true = beta, sigma2.true = sigma2, Xtest = Xtest, Ytest = Ytest, rhox = rhox, SNR = SNR, B=B, ADJ=ADJ)
 }
