@@ -40,42 +40,36 @@ generate_simdata <- function(n = 100, rhox = 0, SNR = 4, option = "twoclusters",
   }
   
   # THIS PART IS NEEDED FOR FITTING Soft-thresholded GP(STGP)
-  # uncomment the following if you are fitting STGP of Kang et al.(2018)
+  # comment the following if you are not fitting STGP of Kang et al.(2018)
   
   # Set up the basis functions when rhox > 0:
-  #knots <- expand.grid(seq(0,m+1,length=round(m/2)),
-  #                     seq(0,m+1,length=round(m/2)))
-  #bw    <- min(dist(knots))
-  ## Define the spatial adjacency matrix: 1D
-  # ADJ1D <- function(m){
-  #   A <- 0*diag(m)
-  #   for(j in 2:m){
-  #     A[j,j-1]<-A[j-1,j]<-1
-  #   }
-  #   A
-  # }
-  # 
-  # A     <- ADJ1D(round(m/2))
-  # ADJ   <- kronecker(A,diag(round(m/2)))+kronecker(diag(round(m/2)),A)
-  # 
-  # D     <- rdist(s,knots)
-  # B     <- exp(-0.5*(D/bw)^2)
-  # B     <- ifelse(D>3*bw,0,B)
-  # 
-  # S     <- sqrt(diag(B%*%solve(diag(colSums(ADJ))-0.99*ADJ)%*%t(B)))
-  # B     <- diag(1/S)%*%B
-  # S     <- sqrt(diag(B%*%solve(diag(colSums(ADJ))-0.99*ADJ)%*%t(B)))
+  knots <- expand.grid(seq(0,m+1,length=round(m/2)),
+                      seq(0,m+1,length=round(m/2)))
+  bw    <- min(dist(knots))
+  # Define the spatial adjacency matrix: 1D
+  ADJ1D <- function(m){
+    A <- 0*diag(m)
+    for(j in 2:m){
+      A[j,j-1]<-A[j-1,j]<-1
+    }
+    A
+  }
+
+  A     <- ADJ1D(round(m/2))
+  ADJ   <- kronecker(A,diag(round(m/2)))+kronecker(diag(round(m/2)),A)
   
-  X <- Xtest <- NULL
+  s     <- expand.grid(1:m,1:m)
+  D     <- fields::rdist(s,knots)
+  B     <- exp(-0.5*(D/bw)^2)
+  B     <- ifelse(D>3*bw,0,B)
+
+  S     <- sqrt(diag(B%*%solve(diag(colSums(ADJ))-0.99*ADJ)%*%t(B)))
+  B     <- diag(1/S)%*%B
+  S     <- sqrt(diag(B%*%solve(diag(colSums(ADJ))-0.99*ADJ)%*%t(B)))
+  
   if(rhox > 0){
-    for(i in 1:n){
-      Xi <- as.vector(P%*%rnorm(m2)) # dependency structure
-      X  <- rbind(X,Xi)
-    }
-    for(i in 1:ntest){
-      Xitest <- as.vector(P%*%rnorm(m2))
-      Xtest  <- rbind(Xtest,Xitest)
-    }
+    X <- mvnfast::rmvn(n, mu = rep(0,m2), sigma = t(P), isChol = T)
+    Xtest <- mvnfast::rmvn(ntest, mu = rep(0,m2), sigma = t(P), isChol = T)
   }else{
     X <- matrix(rnorm(n*m2), n, m2) # no dependency
     Xtest <- matrix(rnorm(ntest*m2), ntest, m2)
