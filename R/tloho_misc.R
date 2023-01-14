@@ -87,7 +87,7 @@ cholAdd <- function(R, j, A2, A1 = NULL, A3 = NULL) {
       S22 = sqrt(as.numeric(A2 - sum(S12^2)))
       R_new[1:(n+1), n+1] = c(S12, S22)
     }else{
-      R_new[1,1] = A2
+      R_new[1,1] = sqrt(as.numeric(A2))
     }
   } else {
     R_new = matrix(0, nrow = n+1, ncol = n+1)
@@ -176,6 +176,7 @@ cholMerge.loho <- function(R, Xtilde, lambda_new, clust_old, clust_new, csize){
   
   # remove a column for clust_new
   idx_rm_new = idx_add - 1
+  
   R_new = cholDel(R_new, idx_rm_new)
   
   # remove a column for clust_old
@@ -248,106 +249,6 @@ splitCluster.loho<- function(mstgraph, k, membership, csize) {
               clust_old = clust_split))
 }
 
-# membership: cluster_id -> vid
-# cluster: vid -> cluster_id
-# have a constraint that new clster size is always less than old cluster size
-splitCluster.loho.waveletproposal <- function(mstgraph, k, membership, csize, edge_status, cluster) {
-  
-  n = length(V(mstgraph))
-  indicator_within = (edge_status[E(mstgraph)$eid] == T) #length should be n-k, may be improved not using char vector
-  proposal_weight = E(mstgraph)$proposalweight*indicator_within # between cluster edge weight will be 0
-  sampled_idx = sample.int(n-1, 1, prob = proposal_weight) # although it is n-1, not n-k, some of the proposal_weights are zero
-  # split proposal probability
-  proposalprob_split = proposal_weight[sampled_idx]/sum(proposal_weight)
-  # reverse move proposal probability
-  indicator_between = (edge_status[E(mstgraph)$eid] == F)
-  proposal_weight_rev = 1 - E(mstgraph)$proposalweight[indicator_between]
-  proposalprob_merge = (1- proposal_weight[sampled_idx])/sum(proposal_weight_rev,1- proposal_weight[sampled_idx])
-  
-  edge_cutted = E(mstgraph)[sampled_idx]
-  eid_cutted = edge_cutted$eid # see...
-  #browser()
-  edge_cutted_ends = ends(mstgraph, edge_cutted)
-  cluster_idx = cluster[edge_cutted_ends]
-  if(cluster_idx[1]!=cluster_idx[2]) stop("it cutted between-edges...")
-  clust_split = cluster_idx[1]
-  mst_subgraph = induced_subgraph(mstgraph, membership[[cluster_idx[1]]])
-  
-  mst_subgraph = delete.edges(mst_subgraph, which(E(mst_subgraph)$eid==eid_cutted))
-  connect_comp = components(mst_subgraph)
-  clust_vid_new = split(V(mst_subgraph)$vid, connect_comp$membership)
-  
-  
-  # vid_new = (V(mst_subgraph)$vid)[cluster_new == 2]  # vid for vertices belonging to new cluster
-  # membership[vid_new] = k + 1
-  
-  #introduce the constraint; |new cluster| <= |old cluster| where |.| is size
-  if(length(clust_vid_new[[2]])>length(clust_vid_new[[1]])){
-    dummy <- clust_vid_new[[1]]
-    clust_vid_new[[1]] <- clust_vid_new[[2]]
-    clust_vid_new[[2]] <- dummy
-  }
-  return(list(vid_old = clust_vid_new[[1]], vid_new = clust_vid_new[[2]], eid_cutted = eid_cutted,
-              clust_old = clust_split, proposalprob=list(split= proposalprob_split, merge = proposalprob_merge)))
-}
-
-# function to merge two existing clusters
-# always have a constraint that merged cluster inherits the larger cluster
-mergeCluster.loho.waveletproposal <- function(mstgraph, eid_btw_mst, membership, csize, cluster, edge_list, edge_status,
-                              change = F) {
-  n = length(V(mstgraph))
-  # edge for merging
-  #edge_merge = sample.int(length(eid_btw_mst), 1)
-  indicator_between = (edge_status[E(mstgraph)$eid] == T) #length should be n-k, may be improved not using char vector
-  proposal_weight = E(mstgraph)$proposalweight*indicator_between
-  sampled_idx = sample.int(n-1, 1, prob = proposal_weight)
-  proposalprob_merge = proposal_weight[sampled_idx]/sum(proposal_weight)
-  # reverse move proposal probability
-  indicator_within = (edge_status[E(mstgraph)$eid] == F)
-  proposal_weight_rev = 1 - E(mstgraph)$proposalweight[indicator_within]
-  proposalprob_split = (1- proposal_weight[sampled_idx])/sum(proposal_weight_rev,1- proposal_weight[sampled_idx])
-  
-  # update cluster information
-  # clusters of endpoints of edge_merge
-  eid_merge = E(mstgraph)[sampled_idx]$eid
-  edge_merge = which(eid_btw_mst == eid_merge)
-  clusters_merge = cluster[edge_list[eid_merge, ]]
-  #bigcluster = which.max(csize[clusters_merge])
-  #c1 = clusters_merge[bigcluster]; c2 = clusters_merge[-bigcluster] # note that size of c1 > size of c2
-  clusters_merge = sort(clusters_merge)
-  c1 = clusters_merge[1]; c2 = clusters_merge[2] # note c1 < c2
-  if(c1 == c2) stop("merging cluster selection error")
-  # merge c2 to c1
-  
-  # vid of vertices in c2
-  vid_old = membership[[c2]]
-  
-  #added : vid of verticies in c1
-  vid_new = membership[[c1]]
-  ## #added
-  if(length(vid_old) > length(vid_new)){
-    oldinherit <- T
-  }else{
-    #cat("OLDINHERIT FALSE\n")
-    oldinherit <- F
-  }
-  
-  csize_new = NULL; clust_vid = NULL
-  if(change) {
-    clust_vid = membership
-    clust_vid[[c1]] = c(membership[[c1]], vid_old)
-    clust_vid[[c2]] = NULL
-    
-    csize_new = csize
-    csize_new[c1] = length(clust_vid[[c1]])
-    csize_new = csize_new[-c2]
-  }
-  # now drop c2
-  return(list(vid_old = vid_old, clust_old = c2, clust_new = c1,
-              edge_merge = edge_merge, clust_vid = clust_vid, csize = csize_new, oldinherit = oldinherit, vid_new = vid_new, 
-              proposalprob=list(split= proposalprob_split, merge = proposalprob_merge)))
-}
-
 
 # function to merge two existing clusters
 # always have a constraint that merged cluster inherits the larger cluster
@@ -392,7 +293,9 @@ mergeCluster.loho <- function(mstgraph, eid_btw_mst, membership, csize, cluster,
   }
   # now drop c2
   return(list(vid_old = vid_old, clust_old = c2, clust_new = c1,
-              edge_merge = edge_merge, clust_vid = clust_vid, csize = csize_new, oldinherit = oldinherit, vid_new = vid_new))
+              edge_merge = edge_merge, clust_vid = clust_vid, csize = csize_new, 
+              #oldinherit = oldinherit, 
+              vid_new = vid_new))
 }
 
 
