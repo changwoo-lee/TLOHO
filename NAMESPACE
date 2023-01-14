@@ -2,7 +2,6 @@
 
 export(cholesky_diagonalcpp)
 export(tloho_lm)
-export(tloho_lm_normalmeans)
 exportPattern("^[[:alpha:]]+")
 import(igraph)
 import(mgcv)
