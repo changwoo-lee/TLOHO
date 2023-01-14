@@ -515,7 +515,7 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
   mode(tau_acc) <- "integer"
   
   cat("get Bayes estimator of partition (clusters) that minimizes loss ")
-  cluster_est = salso::salso(cluster_out, loss = loss)
+  cluster_est = salso::dlso(cluster_out, loss = loss)
   
   return(list('beta_out' = beta_est,
               'lambda2_out' = lambda2_out,

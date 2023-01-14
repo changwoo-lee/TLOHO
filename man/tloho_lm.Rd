@@ -14,7 +14,7 @@ tloho_lm(
   MCMC = 50000,
   BURNIN = 40000,
   THIN = 10,
-  Dahl = F,
+  loss = "binder",
   seed = NULL
 )
 }
@@ -37,7 +37,7 @@ tloho_lm(
 
 \item{THIN}{thin-in rate. The final number of posterior sample is nsamples = (MCMC-BURNIN)/THIN.}
 
-\item{Dahl}{bool, whether to calculate Dahl's cluster estimate after MCMC. Note that when p is large, this can take longer than MCMC itself}
+\item{loss}{"binder" or "VI", whether to calculate cluster estimate based on Binder loss (default) or VI loss}
 
 \item{seed}{seed.}
 }
@@ -55,7 +55,7 @@ A list containing:\tabular{ll}{
    \tab \cr
    \code{cluster_map} \tab length p vector, maximum a posteriori cluster estimate \cr
    \tab \cr
-   \code{cluster_est_Dahl} \tab (if Dahl = True)length p vector, cluster estimate based on Dahl's method  \cr
+   \code{cluster_est} \tab length p vector, cluster estimate based on Bayes estimator that minimizes expected loss \cr
    \tab \cr
    \code{log_post_out} \tab length nsamples vector, log posterior likelihood(up to a constant) \cr
    \tab \cr
@@ -72,7 +72,7 @@ A list containing:\tabular{ll}{
 }
 }
 \description{
-tloho_lm: Tree-based Low rank Horseshoe regularization prior in linear model
+This function ...
 }
 \details{
 Anonymous authors, 
