@@ -273,13 +273,13 @@ mergeCluster.loho <- function(mstgraph, eid_btw_mst, membership, csize, cluster,
   
   #added : vid of verticies in c1
   vid_new = membership[[c1]]
-  ## #added
-  if(length(vid_old) > length(vid_new)){
-    oldinherit <- T
-  }else{
-    #cat("OLDINHERIT FALSE\n")
-    oldinherit <- F
-  }
+  # ## #added
+  # if(length(vid_old) > length(vid_new)){
+  #   oldinherit <- T
+  # }else{
+  #   #cat("OLDINHERIT FALSE\n")
+  #   oldinherit <- F
+  # }
   
   csize_new = NULL; clust_vid = NULL
   if(change) {
