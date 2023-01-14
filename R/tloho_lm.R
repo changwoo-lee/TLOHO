@@ -74,6 +74,13 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
     stop("provide 'binder' or 'VI' for the input of 'loss' argument \n")
   }
   
+  if(all(X[lower.tri(X)] == 0, X[upper.tri(X)] == 0, n==p) ){
+    cat("X = I after column standardization, i.e. it is normal means model...\n")
+    normalmeans = T
+  }else{
+    normalmeans = F
+  }
+  
   # sanity check for graph0
   if(any(clusters(graph0)$csize==1)) cat(paste("note: graph contains",sum(clusters(graph0)$csize==1),"isolated nodes in the graph\n"))
   inc_mat = get.edgelist(graph0, names = F) 
@@ -188,7 +195,7 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
   for(iter in 1:MCMC) {
       
       ## Step 1 ----------------
-    
+      
       if(k == Comp) {pa = 0.95; pb = 0; pc = 0 # only birth/hyper step allowed
       } else if(k == p) {pa = 0; pb = 0.95; pc = 0 # death/change/hyper allowed
       } else {pa = 0.425; pb = 0.425; pc = 0.1}
@@ -224,9 +231,13 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
         oldcol = rowSums(X[,vid_old, drop = F])/sqrt(length(vid_old))
         newcol = rowSums(X[,vid_new, drop = F])/sqrt(length(vid_new)) # size of vid_new is less than vid_old
         
-        R_new = cholSplit.loho(R, Xtilde, lambda_old = PRECISION[clust_old], PRECISION_star,
-                           oldcol, newcol, clust_old = clust_old)
-        
+        if(normalmeans){
+          R_new = diag(sqrt(1+PRECISION_starvec), nrow = k+1) # for normal means
+        }else{
+          R_new = cholSplit.loho(R, Xtilde, lambda_old = PRECISION[clust_old], PRECISION_star,
+                                 oldcol, newcol, clust_old = clust_old)
+        }
+        #
         # update Xty
         Xty_new = updateXty.loho('split', Xty, Y, idx_old = clust_old, idx_new = clust_new,
                                 oldcol = oldcol, newcol = newcol, csize = NULL)
@@ -269,11 +280,11 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
         clust_old = merge_res$clust_old; clust_new = merge_res$clust_new
 
         PRECISION_starvec <- PRECISION[-(clust_old)] # erase clust_old th PRECISION
-        if(merge_res$oldinherit){
-          PRECISION_star <- PRECISION[clust_old] # merging cluster precision - inherits old
-        }else{
+        #if(merge_res$oldinherit){
+        #  PRECISION_star <- PRECISION[clust_old] # merging cluster precision - inherits old
+        #}else{
           PRECISION_star <- PRECISION[clust_new] #merging cluster precision
-        }
+        #}
         PRECISION_starvec[clust_new] <- PRECISION_star
 
         # compute log-prior ratio
@@ -283,7 +294,13 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
         }else {pa_new = 0.425}
         log_P = -(log(pb) - log(pa_new))  #+ log(k - Comp) - log(n-k+1) + 2*dcauchy(lambda_old, log = T)
 
-        R_new = cholMerge.loho(R, Xtilde, PRECISION_star, clust_old, clust_new, csize)
+        #browser()
+        if(normalmeans){
+          R_new = diag(sqrt(1+PRECISION_starvec), nrow = k-1) # for normal means
+        }else{
+          R_new = cholMerge.loho(R, Xtilde, PRECISION_star, clust_old, clust_new, csize)#, #merge_res$oldinherit)
+        }
+        # browser()
         Xty_new = updateXty.loho('merge', Xty, Y, idx_old = clust_old, idx_new = clust_new,
                                oldcol = NULL, newcol = NULL, csize = csize)
         
@@ -330,15 +347,19 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
         vid_new = merge_res$vid_new
         
         PRECISION_starvec <- PRECISION[-(clust_old)] # erase clust_old th PRECISION
-        if(merge_res$oldinherit){
-          PRECISION_star <- PRECISION[clust_old] # merging cluster precision - inherits old
-        }else{
+        # if(merge_res$oldinherit){
+        #   PRECISION_star <- PRECISION[clust_old] # merging cluster precision - inherits old
+        # }else{
           PRECISION_star <- PRECISION[clust_new] # merging cluster precision
-        }
+        #}
         PRECISION_starvec[clust_new] <- PRECISION_star 
 
         # update Cholesky factor and Xty
-        R_new = cholMerge.loho(R, Xtilde, PRECISION_star, clust_old, clust_new, csize)
+        if(normalmeans){
+          R_new = diag(sqrt(1+PRECISION_starvec), nrow = k-1) # for normal means
+        }else{
+          R_new = cholMerge.loho(R, Xtilde, PRECISION_star, clust_old, clust_new, csize)#, #merge_res$oldinherit)
+        }
         Xty_new = updateXty.loho('merge', Xty, Y, idx_old = clust_old, idx_new = clust_new,
                                oldcol = NULL, newcol = NULL, csize = csize)
         # update Xtilde
@@ -360,6 +381,7 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
         
         R_new =  cholSplit.loho(R_new, Xtilde_new, lambda_old = PRECISION_starvec[clust_old], PRECISION_starstar,
                               oldcol, newcol, clust_old = clust_old)
+        
         Xty_new = updateXty.loho('split', Xty_new, Y, idx_old = clust_old, idx_new = clust_new,
                                oldcol = oldcol, newcol = newcol, csize = NULL)
         log_A = 0 #- 2*dcauchy(eta_min,log=T) +  2*dcauchy(eta_new_new2,log=T)
