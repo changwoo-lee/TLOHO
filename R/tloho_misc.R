@@ -23,7 +23,7 @@
 #' @param n nobs.
 #' @param bs_CVAC (default NULL) bsol if precalculated 
 #' 
-#' @return
+#' @return list of two outputs, mlog_like and bsol
 #'
 #' @keywords internal
 #' @noRd
@@ -512,20 +512,6 @@ getEdgeStatus <- function(membership, inc_mat) {
   iscrossing[membership_head != membership_tail] = TRUE # crossing
   return(iscrossing)
 }
-
-
-
-# David Dahl's method to get cluster point estimate from MCMC samples
-Dahl <- function(s_save) {
-  # Dahl’s method is equivalent to minimizing Binder’s loss function
-  pihat <- salso::psm(s_save)
-  estimate <- s_save[which.min(salso::binder(s_save, pihat)), ]
-  estimate
-  #return(aricode::NMI(true.cluster, estimate))
-}
-
-## functions for integrating out lambda
-
 
 
 

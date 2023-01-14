@@ -1,6 +1,6 @@
 #' tloho_lm: Tree-based Low rank Horseshoe regularization prior in linear model
 #' 
-#' 
+#' This function ...
 #'
 #' Anonymous authors, 
 #' Title: T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs
@@ -15,7 +15,7 @@
 #' @param MCMC number of total MCMC iteration.
 #' @param BURNIN number of burn-in iteration which will be discarded
 #' @param THIN thin-in rate. The final number of posterior sample is nsamples = (MCMC-BURNIN)/THIN.
-#' @param Dahl bool, whether to calculate Dahl's cluster estimate after MCMC. Note that when p is large, this can take longer than MCMC itself
+#' @param loss "binder" or "VI", whether to calculate cluster estimate based on Binder loss (default) or VI loss
 #' @param seed seed.
 #' @import igraph salso mgcv
 #'
@@ -32,7 +32,7 @@
 #'    \tab \cr
 #'    \code{cluster_map} \tab length p vector, maximum a posteriori cluster estimate \cr
 #'    \tab \cr
-#'    \code{cluster_est_Dahl} \tab (if Dahl = True)length p vector, cluster estimate based on Dahl's method  \cr
+#'    \code{cluster_est} \tab length p vector, cluster estimate based on Bayes estimator that minimizes expected loss \cr
 #'    \tab \cr
 #'    \code{log_post_out} \tab length nsamples vector, log posterior likelihood(up to a constant) \cr
 #'    \tab \cr
@@ -50,7 +50,7 @@
 #' @export
 #' 
 #' 
-tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 50000, BURNIN = 40000, THIN = 10, Dahl = F, seed=NULL){
+tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 50000, BURNIN = 40000, THIN = 10, loss = "binder", seed=NULL){
   ## sanity check ----
   set.seed(seed)
   p = ncol(X) # = vcount(graph0)
@@ -66,9 +66,12 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
   if(!(c >= 0 && c < 1)) stop("c should be between 0(inclusive) and 1(exclusive)")
   if(!(tau0 > 0)) stop("tau0 should be positive")
   
-  if(all(X[lower.tri(X)] == 0, X[upper.tri(X)] == 0, n==p) ){
-    cat("X = I after column standardization, i.e. it is normal means model. Run tloho_lm_normalmeans() ...\n")
-    return(tloho_lm_normalmeans(Y, graph0, init_val, c, tau0, MCMC, BURNIN, THIN, Dahl, seed))
+  if(loss == "binder"){
+    cat("point estimate will based on binder distance \n")
+  }else if(loss == "VI"){
+    cat("point estimate will based on Variation of information distance\n")
+  }else{
+    stop("provide 'binder' or 'VI' for the input of 'loss' argument \n")
   }
   
   # sanity check for graph0
@@ -510,17 +513,21 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
   mode(cluster_out) <- "integer"
   mode(cluster_map) <- "integer"
   mode(tau_acc) <- "integer"
-  if(Dahl){
-    cat("get cluster point estimate using David Dahl's method...note that this can take long when p is large...")
-    cluster_est_Dahl = Dahl(cluster_out)
-  }else{
-    cluster_est_Dahl = NULL
-  }
-  return(list('beta_out' = beta_est, 'lambda2_out' = lambda2_out,'tau2_out' = tau2_out,
+  
+  cat("get Bayes estimator of partition (clusters) that minimizes loss ")
+  cluster_est = salso::salso(cluster_out, loss = loss)
+  
+  return(list('beta_out' = beta_est,
+              'lambda2_out' = lambda2_out,
+              'tau2_out' = tau2_out,
               'sigmasq_y_out' = sigmasq_y_out, 
-              'cluster_out' = cluster_out, 'cluster_map' = cluster_map, 'cluster_est_Dahl' = cluster_est_Dahl,
+              'cluster_out' = cluster_out,
+              'cluster_map' = cluster_map,
+              'cluster_est' = cluster_est,
               'log_post_out' = log_post_out,
               'acc' = list(move_cnt = move_cnt, move_acc = move_acc),
-              'map_beta_est' = map_beta_est, 'mean_beta_est' = mean_beta_est,'median_beta_est' = median_beta_est,
+              'map_beta_est' = map_beta_est, 
+              'mean_beta_est' = mean_beta_est,
+              'median_beta_est' = median_beta_est,
               'map_MSF_est' = MST_out[[map_idx]]))
 }
