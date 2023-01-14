@@ -3,6 +3,7 @@
 export(cholesky_diagonalcpp)
 export(tloho_lm)
 exportPattern("^[[:alpha:]]+")
+import(gsl)
 import(igraph)
 import(mgcv)
 import(salso)

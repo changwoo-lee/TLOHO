@@ -40,6 +40,8 @@ tloho_lm(
 
 \item{loss}{"binder" or "VI", whether to calculate cluster estimate based on Binder loss (default) or VI loss}
 
+\item{hsplus}{default F, use horseshoe+ prior instead of horseshoe? (experimental)}
+
 \item{seed}{seed.}
 }
 \value{
@@ -73,10 +75,11 @@ A list containing:\tabular{ll}{
 }
 }
 \description{
-This function ...
+tloho_lm: Tree-based Low rank Horseshoe regularization prior in linear model
 }
 \details{
-Anonymous authors, 
-Title: T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs
-submitted to NeurIPS2021, paper2212
+The main R function of the paper 
+
+T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs
+by C. J. Lee, Z. T. Luo, and H. Sang, NeurIPS 2021
 }

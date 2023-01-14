@@ -15,10 +15,10 @@ Authors@R:
            family = "Sang",
            role = c("aut"),
            email = "huiyan@stat.tamu.edu"))
-Description: More about what it does (maybe more than one line)
+Description: T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: igraph
-Imports: Rcpp (>= 1.0.7), mgcv, salso
+Imports: Rcpp (>= 1.0.7), mgcv, salso, gsl
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 7.2.2

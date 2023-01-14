@@ -1,10 +1,12 @@
 #' tloho_lm: Tree-based Low rank Horseshoe regularization prior in linear model
 #' 
-#' This function ...
+#' tloho_lm: Tree-based Low rank Horseshoe regularization prior in linear model
+#' 
+#' The main R function of the paper 
+#' 
+#' T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs
+#' by C. J. Lee, Z. T. Luo, and H. Sang, NeurIPS 2021
 #'
-#' Anonymous authors, 
-#' Title: T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs
-#' submitted to NeurIPS2021, paper2212
 #'
 #' @param Y n by 1 scalar, real-valued response variables. 
 #' @param X n by p matrix, real-valued predictors. If not standardized, it will be standardized so that all columns have L2 norm 1
@@ -16,7 +18,9 @@
 #' @param BURNIN number of burn-in iteration which will be discarded
 #' @param THIN thin-in rate. The final number of posterior sample is nsamples = (MCMC-BURNIN)/THIN.
 #' @param loss "binder" or "VI", whether to calculate cluster estimate based on Binder loss (default) or VI loss
+#' @param hsplus default F, use horseshoe+ prior instead of horseshoe? (experimental)
 #' @param seed seed.
+#'
 #' @import igraph salso mgcv gsl
 #'
 #' @return  A list containing:\tabular{ll}{
@@ -375,7 +379,11 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
         vid_new = split_res$vid_new; vid_old = split_res$vid_old
         clust_old = split_res$clust_old; clust_new = k
         
-        lambda_starstar = abs(rcauchy(1))
+        if(!hsplus){
+          lambda_starstar = abs(rcauchy(1)) 
+        }else{
+          lambda_starstar = abs(rcauchy(1, scale = abs(rcauchy(1))))
+        }
         PRECISION_starstar <- 1/(lambda_starstar^2*tau2) 
         PRECISION_starstarvec <- append(PRECISION_starvec, PRECISION_starstar, after = clust_new-1)
         
