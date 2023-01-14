@@ -28,6 +28,7 @@ devtools::install_github("changwoo-lee/TLOHO")
 
 ``` r
 library(TLOHO)
+library(fields)
 data = generate_simdata(n=100, rhox = 0, SNR = 4, option = "twoclusters")
 
 fields::image.plot(matrix(data$beta.true, 30, 30)) # true beta image
