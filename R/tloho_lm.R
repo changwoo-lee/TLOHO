@@ -17,7 +17,7 @@
 #' @param THIN thin-in rate. The final number of posterior sample is nsamples = (MCMC-BURNIN)/THIN.
 #' @param loss "binder" or "VI", whether to calculate cluster estimate based on Binder loss (default) or VI loss
 #' @param seed seed.
-#' @import igraph salso mgcv
+#' @import igraph salso mgcv gsl
 #'
 #' @return  A list containing:\tabular{ll}{
 #'    \code{beta_out} \tab nsamples by p matrix, posterior samples of beta\cr
@@ -50,7 +50,7 @@
 #' @export
 #' 
 #' 
-tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 50000, BURNIN = 40000, THIN = 10, loss = "binder", seed=NULL){
+tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 50000, BURNIN = 40000, THIN = 10, loss = "binder", hsplus = F, seed=NULL){
   ## sanity check ----
   set.seed(seed)
   p = ncol(X) # = vcount(graph0)
@@ -213,7 +213,11 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
         clust_new = k + 1
         #PRECISION inherits to the larger splitted cluster
         # prior proposal
-        lambda_star = abs(rcauchy(1)) 
+        if(!hsplus){
+          lambda_star = abs(rcauchy(1)) 
+        }else{
+          lambda_star = abs(rcauchy(1, scale = abs(rcauchy(1))))
+        }
         PRECISION_star <- 1/(lambda_star^2*tau2)
         PRECISION_starvec = PRECISION
         PRECISION_starvec <- append(PRECISION_starvec, PRECISION_star, after = clust_new-1)
@@ -480,10 +484,21 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
      # Step 3 --------------------------
      # code reference: R package horseshoe
      # update local shrinkage parameters: update lambda_j's in a block using slice sampling ##
+     #browser()
      eta = 1/(lambda2)
-     upsi = stats::runif(k,0,1/(1+eta))
+     if(!hsplus){
+       upsi = stats::runif(k,0,1/(1+eta))
+     }else{
+       upperbound1 = log(eta)/(eta-1)
+       upperbound1[which(is.nan(upperbound1))] = 1 # when eta = 1
+       upsi = stats::runif(k,0, upperbound1)
+     }
      tempps = beta_tilde^2/(2*sigmasq_y*tau2)
-     ub = (1-upsi)/upsi
+     if(!hsplus){
+       ub = (1-upsi)/upsi
+     }else{
+       ub = -gsl::lambert_Wm1(-upsi*exp(-upsi))/upsi #not W0
+     }
      # now sample eta from exp(tempv) truncated between 0 & upsi/(1-upsi)
      Fub = 1 - exp(-tempps*ub) # exp cdf at ub
      Fub[Fub < (1e-8)] = 1e-8;  # for numerical stability
@@ -499,6 +514,10 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
      bsol = log_like_res$bsol
      R = R_new
      PRECISION = PRECISION_new
+     
+     # sort cluster indices in the decreasing size order
+   
+     
      
     # save result ----------------
     if(iter > BURNIN & (iter - BURNIN) %% THIN == 0) {

@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 TLOHO is an accompanying R package of the paper:
 
-Lee, C. J., Luo, Z. T., & Sang, H. (2021). T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs. *Advances in Neural Information Processing Systems 34 (NeurIPS 2021)*
+Lee, C. J., Luo, Z. T., & Sang, H. (2021). T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs. *Advances in Neural Information Processing Systems 34 (NeurIPS 2021)* [[paper link]](https://proceedings.neurips.cc/paper/2021/hash/05a70454516ecd9194c293b0e415777f-Abstract.html)
 
 ## Installation
 
@@ -33,31 +33,79 @@ devtools::install_github("changwoo-lee/TLOHO")
 
 ## Example 
 
-### Running simulation in section 4.1
+##### Running simulation in Section 4.1
 
 ```{r example1, eval=F}
 library(TLOHO)
 library(fields)
 data = generate_simdata(n=100, rhox = 0, SNR = 4, option = "twoclusters")
 
-fields::image.plot(matrix(data$beta.true, 30, 30)) # true beta image
+str(data$Y) # response is n = 100 vector
+str(data$X) # predictor is n = 100 by p = 900 matrix
+str(data$beta.true) # p=900 dimensional true coefficient (unknown)
+
+fields::image.plot(matrix(data$beta.true, 30, 30)) # true beta image, assumed to be structured with many zeros
 
 graph0 = igraph::make_lattice(c(30,30))# construct lattice graph
 
-fit <- tloho_lm(data$Y, data$X, graph0, Dahl = T) # fit
+# fit the model 
+fit <- tloho_lm(data$Y, data$X, graph0) 
 
 image.plot(matrix(fit$median_beta_est, 30, 30))
-image.plot(matrix(fit$cluster_est_Dahl, 30, 30))
+image.plot(matrix(fit$cluster_est, 30, 30))
 ```
+
+##### Normal means model example (Section 4.2), on the lattice graph
 
 ```{r example2, eval = F}
 # normal means model when X = I
 Y = data$beta.true + rnorm(900, sd = 0.5)
 
 image.plot(matrix(Y, 30, 30)) # noisy data
-fit2 <- tloho_lm_normalmeans(Y, graph0, Dahl = T)
+X = diag(900)
+
+fit2 <- tloho_lm(Y, X, graph0)
 
 image.plot(matrix(fit2$median_beta_est, 30, 30))
-image.plot(matrix(fit2$cluster_est_Dahl, 30, 30))
+image.plot(matrix(fit2$cluster_est, 30, 30))
 ```
+
+##### Horseshoe+ prior instead of horseshoe (experimental)
+
+```{r example3, eval = F}
+# using data from the first example (Simulation data)
+fit_hsplus <- tloho_lm(data$Y, data$X, graph0, hsplus =T) # added in ver 1.1.0 (experimental)
+
+
+image.plot(matrix(fit_hsplus$median_beta_est, 30, 30))
+
+node = 1 # node that true beta = 0
+plot(density(fit_hsplus$beta_out[,node]), main = "posterior of beta, black:hsplus, red:hs ")
+lines(density(fit$beta_out[,node]), col = "red")
+# black (hsplus) is more highly peaked at 0
+
+
+node = 500 # node that true beta = -1
+plot(density(fit_hsplus$beta_out[,node]), main = "posterior of beta, black:hsplus, red:hs ")
+lines(density(fit$beta_out[,node]), col = "red")
+
+node = 900 # node that true beta = 0
+plot(density(fit_hsplus$beta_out[,node]), main = "posterior of beta, black:hsplus, red:hs ")
+lines(density(fit$beta_out[,node]), col = "red")
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 

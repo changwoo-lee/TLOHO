@@ -15,6 +15,7 @@ tloho_lm(
   BURNIN = 40000,
   THIN = 10,
   loss = "binder",
+  hsplus = F,
   seed = NULL
 )
 }
