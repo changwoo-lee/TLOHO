@@ -38,7 +38,7 @@ devtools::install_github("changwoo-lee/TLOHO")
 ```{r example1, eval=F}
 library(TLOHO)
 library(fields)
-data = generate_simdata(n=100, rhox = 0, SNR = 4, option = "twoclusters")
+data = generate_simdata(n=100, rhox = 0, SNR = 4, option = "twoclusters", seed = 1) # change seed if needed
 
 str(data$Y) # response is n = 100 vector
 str(data$X) # predictor is n = 100 by p = 900 matrix
@@ -48,7 +48,7 @@ fields::image.plot(matrix(data$beta.true, 30, 30)) # true beta image, assumed to
 
 graph0 = igraph::make_lattice(c(30,30))# construct lattice graph
 
-# fit the model 
+# fit the model
 fit <- tloho_lm(data$Y, data$X, graph0) 
 
 image.plot(matrix(fit$median_beta_est, 30, 30))
@@ -74,25 +74,16 @@ image.plot(matrix(fit2$cluster_est, 30, 30))
 
 ```{r example3, eval = F}
 # using data from the first example (Simulation data)
-fit_hsplus <- tloho_lm(data$Y, data$X, graph0, hsplus =T) # added in ver 1.1.0 (experimental)
+fit_hsplus <- tloho_lm(data$Y, data$X, graph0, hsplus =T, seed = 123) # added in ver 1.1.0 (experimental)
 
 
 image.plot(matrix(fit_hsplus$median_beta_est, 30, 30))
 
+
 node = 1 # node that true beta = 0
 plot(density(fit_hsplus$beta_out[,node]), main = "posterior of beta, black:hsplus, red:hs ")
 lines(density(fit$beta_out[,node]), col = "red")
-# black (hsplus) is more highly peaked at 0
-
-
-node = 500 # node that true beta = -1
-plot(density(fit_hsplus$beta_out[,node]), main = "posterior of beta, black:hsplus, red:hs ")
-lines(density(fit$beta_out[,node]), col = "red")
-
-node = 900 # node that true beta = 0
-plot(density(fit_hsplus$beta_out[,node]), main = "posterior of beta, black:hsplus, red:hs ")
-lines(density(fit$beta_out[,node]), col = "red")
-
+# hsplus is often more highly peaked at 0 compared to hs, but not always..
 
 ```
 
