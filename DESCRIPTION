@@ -1,7 +1,7 @@
 Package: TLOHO
 Title: T-LoHo: A Bayesian Regularization Model for Structured Sparsity and Smoothness on Graphs
-Version: 1.1.0
-Date: 2023-01-14
+Version: 1.1.1
+Date: 2023-10-03
 Authors@R: 
     c(person(given = "Changwoo",
            family = "Lee",
@@ -21,4 +21,4 @@ Encoding: UTF-8
 Depends: igraph
 Imports: Rcpp (>= 1.0.7), mgcv, salso, gsl
 LinkingTo: Rcpp, RcppArmadillo
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
