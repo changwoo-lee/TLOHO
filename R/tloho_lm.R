@@ -88,7 +88,6 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
   # sanity check for graph0
   if(any(clusters(graph0)$csize==1)) cat(paste("note: graph contains",sum(clusters(graph0)$csize==1),"isolated nodes in the graph\n"))
   inc_mat = get.edgelist(graph0, names = F) 
-  graph0 = graph_from_edgelist(inc_mat, directed = F)
   
   vertex_idx = 1:p 
   E(graph0)$eid = c(1:ecount(graph0))  # edge id
