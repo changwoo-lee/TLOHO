@@ -7,13 +7,16 @@
 tloho_lm(
   Y,
   X,
+  intercept = F,
+  scale = T,
   graph0,
   init_val = NULL,
   c = 0.5,
   tau0 = 1,
-  MCMC = 50000,
-  BURNIN = 40000,
-  THIN = 10,
+  nsave = 1000,
+  nburn = 40000,
+  nthin = 10,
+  verbose = 1000,
   loss = "binder",
   hsplus = F,
   seed = NULL
@@ -22,27 +25,33 @@ tloho_lm(
 \arguments{
 \item{Y}{n by 1 scalar, real-valued response variables.}
 
-\item{X}{n by p matrix, real-valued predictors. If not standardized, it will be standardized so that all columns have L2 norm 1}
+\item{X}{n by p matrix, real-valued predictors.}
+
+\item{intercept}{logical (default F), add 1's at the first column of X ?}
+
+\item{scale}{logical (default T), if true X will be standardized so that all columns have L2 norm 1. currently cannot combined with scale = T}
 
 \item{graph0}{igraph object, reflecting the structure of beta.}
 
-\item{init_val}{list with name 'beta' and/or 'trees', Initial value of beta and/or spanning forest.}
+\item{init_val}{list (default NULL), list with name 'beta' and/or 'trees', Initial value of beta and/or spanning forest.}
 
-\item{c}{model size penalization hyperparameter, value between 0 and 1. c = 1}
+\item{c}{real between 0 and 1, (default 0.5), Model size penalization hyperparameter}
 
-\item{tau0}{shrinkage strength hyperparameter, positive real.}
+\item{tau0}{positive real (default 1), shrinkage strength hyperparameter}
 
-\item{MCMC}{number of total MCMC iteration.}
+\item{nsave}{integer (default 1000), number of posteror sample saved. Total number of MCMC iteration = nburn + nsave*nthin.}
 
-\item{BURNIN}{number of burn-in iteration which will be discarded}
+\item{nburn}{integer (default 40000), number of burn-in iteration. Total number of MCMC iteration = nburn + nsave*nthin.}
 
-\item{THIN}{thin-in rate. The final number of posterior sample is nsamples = (MCMC-BURNIN)/THIN.}
+\item{nthin}{integer (default 10) thin-in rate. Total number of MCMC iteration = nburn + nsave*nthin.}
 
-\item{loss}{"binder" or "VI", whether to calculate cluster estimate based on Binder loss (default) or VI loss}
+\item{verbose}{integer (default 1000), print progress at every "verbose" iteration. Set negative (e.g. verbose = -1) to turn off.}
 
-\item{hsplus}{default F, use horseshoe+ prior instead of horseshoe? (experimental)}
+\item{loss}{"binder" or "VI" (default "binder"), whether to calculate cluster estimate based on Binder loss (default) or VI loss}
 
-\item{seed}{seed.}
+\item{hsplus}{logical (default F), use horseshoe+ prior instead of horseshoe? (experimental)}
+
+\item{seed}{seed (default NULL)}
 }
 \value{
 A list containing:\tabular{ll}{

@@ -9,17 +9,20 @@
 #'
 #'
 #' @param Y n by 1 scalar, real-valued response variables. 
-#' @param X n by p matrix, real-valued predictors. If not standardized, it will be standardized so that all columns have L2 norm 1
+#' @param X n by p matrix, real-valued predictors. 
+#' @param intercept logical (default F), add 1's at the first column of X ?
+#' @param scale logical (default T), if true X will be standardized so that all columns have L2 norm 1. currently cannot combined with scale = T
 #' @param graph0 igraph object, reflecting the structure of beta. 
-#' @param init_val list with name 'beta' and/or 'trees', Initial value of beta and/or spanning forest. 
-#' @param c model size penalization hyperparameter, value between 0 and 1. c = 1   
-#' @param tau0 shrinkage strength hyperparameter, positive real.
-#' @param MCMC number of total MCMC iteration.
-#' @param BURNIN number of burn-in iteration which will be discarded
-#' @param THIN thin-in rate. The final number of posterior sample is nsamples = (MCMC-BURNIN)/THIN.
-#' @param loss "binder" or "VI", whether to calculate cluster estimate based on Binder loss (default) or VI loss
-#' @param hsplus default F, use horseshoe+ prior instead of horseshoe? (experimental)
-#' @param seed seed.
+#' @param init_val list (default NULL), list with name 'beta' and/or 'trees', Initial value of beta and/or spanning forest. 
+#' @param c real between 0 and 1, (default 0.5), Model size penalization hyperparameter 
+#' @param tau0 positive real (default 1), shrinkage strength hyperparameter
+#' @param nsave integer (default 1000), number of posteror sample saved. Total number of MCMC iteration = nburn + nsave*nthin.
+#' @param nburn integer (default 40000), number of burn-in iteration. Total number of MCMC iteration = nburn + nsave*nthin. 
+#' @param nthin integer (default 10) thin-in rate. Total number of MCMC iteration = nburn + nsave*nthin.  
+#' @param verbose integer (default 1000), print progress at every "verbose" iteration. Set negative (e.g. verbose = -1) to turn off.
+#' @param loss "binder" or "VI" (default "binder"), whether to calculate cluster estimate based on Binder loss (default) or VI loss
+#' @param hsplus logical (default F), use horseshoe+ prior instead of horseshoe? (experimental)
+#' @param seed seed (default NULL)
 #'
 #' @import igraph salso mgcv gsl
 #'
@@ -54,28 +57,40 @@
 #' @export
 #' 
 #' 
-tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 50000, BURNIN = 40000, THIN = 10, loss = "binder", hsplus = F, seed=NULL){
+tloho_lm <- function(Y, X, intercept = F, scale = T, graph0, init_val=NULL, c = 0.5, tau0 = 1,
+                     nsave = 1000, nburn = 40000, nthin = 10, verbose = 1000, loss = "binder", hsplus = F, seed=NULL){
   ## sanity check ----
   set.seed(seed)
-  p = ncol(X) # = vcount(graph0)
   n = nrow(X)
-  X = unname(X)
+  if(intercept){
+    ones = matrix(1, n, 1)
+    colnames(ones) = "intercept"
+    X = cbind(ones, X)
+    graph0 = add_vertices(graph0, 1)
+    graph0 = permute(graph0, c(2:(vcount(graph0)),1)) # first node corresponds to intercept, with singleton node
+    print("intercept =T, added 1's at the first column of design matrix X. Corresponding shrinkage parameter will fixed as 1")
+  }
+  p = ncol(X) # = vcount(graph0)
+  
   if(length(Y)!=n) stop("length of Y is not match with nrow of X")
   if(length(V(graph0))!=p) stop("number of verticies in a graph does not match with ncol of X")
   
-  if(any(abs(apply(X, 2, function(x) sum(x^2))-1) > 1e-15)){
-    cat("design matrix X will be standardized using scale(X)/sqrt(n-1) so that all columns have L2 norm 1.\n")
-    X = scale(X)/sqrt(n-1)
+  if(scale){
+    if(any(abs(apply(X, 2, function(x) sum(x^2))-1) > 1e-15)){
+      if(intercept) stop("intercept = T and scale =T cannot be used together at version 1.2.0....")
+      cat("design matrix X will be standardized using scale(X)/sqrt(n-1) so that all columns have L2 norm 1.\n")
+      X = scale(X)/sqrt(n-1)
+    }
   }
-  if(!(c >= 0 && c < 1)) stop("c should be between 0(inclusive) and 1(exclusive)")
+  if(!(c > 0 && c < 1)) stop("c should be between 0 and 1")
   if(!(tau0 > 0)) stop("tau0 should be positive")
   
   if(loss == "binder"){
-    cat("point estimate will based on binder distance \n")
+    cat("point estimate will based on Binder distance (equivalent to minimizing Rand index) \n")
   }else if(loss == "VI"){
-    cat("point estimate will based on Variation of information distance\n")
+    cat("point estimate will based on variation of information distance\n")
   }else{
-    stop("provide 'binder' or 'VI' for the input of 'loss' argument \n")
+    stop("provide 'Binder' or 'VI' for the input of 'loss' argument \n")
   }
   
   if(all(X[lower.tri(X)] == 0, X[upper.tri(X)] == 0, n==p) ){
@@ -182,21 +197,20 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
   edge_status = apply(matrix(cluster), 2, FUN = getEdgeStatus, inc_mat)
 
   # MCMC saving objects
-  sigmasq_y_out = numeric((MCMC-BURNIN)/THIN)
+  sigmasq_y_out = numeric(nsave)
   lambda2_out = list()
-  tau2_out = numeric((MCMC-BURNIN)/THIN)
+  tau2_out = numeric(nsave)
 
-  cluster_out = array(0, dim = c((MCMC-BURNIN)/THIN, p))
+  cluster_out = array(0, dim = c(nsave, p))
   MST_out = list()
-  log_post_out = matrix(0,(MCMC-BURNIN)/THIN)
-  beta_est = array(0, dim = c((MCMC-BURNIN)/THIN, p))
-  
-  tau_acc = numeric(MCMC)
+  log_post_out = matrix(0,nsave)
+  beta_est = array(0, dim = c(nsave, p))
+  tau_acc = numeric(nburn + nsave*nthin)
   
   # RJMCMC starts ----------------------------
-  
+  isave = 0
   pd = 0.05 # hyper move probability
-  for(iter in 1:MCMC) {
+  for(iter in 1:(nburn + nsave*nthin)) {
       
       ## Step 1 ----------------
       
@@ -513,6 +527,10 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
      up = stats::runif(k,0,Fub)
      eta = -log(1-up)/tempps
      lambda2 = 1/eta;
+     ###########################################################
+     if(intercept) lambda2[1] = 1 # intercept has no shrinkage
+     ############################################################
+     
      
      PRECISION_new = 1/(lambda2*tau2) 
      R_new <- cholesky_diagonalcpp(R, diagadd = PRECISION_new - PRECISION)
@@ -528,20 +546,20 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
      
      
     # save result ----------------
-    if(iter > BURNIN & (iter - BURNIN) %% THIN == 0) {
-      idx = (iter-BURNIN)/THIN
+     if((iter > nburn)&&((iter-nburn)%%nthin==0)){
+      isave = isave + 1
       
-      beta_est[idx, ] = as.vector(crossprod(getPhi(clust_vid, p),beta_tilde))
-      lambda2_out[[idx]] = lambda2
-      tau2_out[idx] = tau2
-      sigmasq_y_out[idx] = sigmasq_y
-      MST_out[[idx]] = mstgraph
-      cluster_out[idx, ] = cluster
+      beta_est[isave, ] = as.vector(crossprod(getPhi(clust_vid, p),beta_tilde))
+      lambda2_out[[isave]] = lambda2
+      tau2_out[isave] = tau2
+      sigmasq_y_out[isave] = sigmasq_y
+      MST_out[[isave]] = mstgraph
+      cluster_out[isave, ] = cluster
 
-      log_post_out[idx] = evalLogPost_HS(beta_tilde, sigmasq_y, lambda2, tau2, k, Y, Xtilde, hyper, Comp)
+      log_post_out[isave] = evalLogPost_HS(beta_tilde, sigmasq_y, lambda2, tau2, k, Y, Xtilde, hyper, Comp)
     }
      
-    if(iter %% 1000 == 0) {
+    if(verbose > 0 && (iter %% verbose == 0)) {
       cat('Iteration', iter, 'done, ncluster:', k,', log_likelihood(up to const, beta/sigma integrated out):',log_like, '\n')
     }
 
@@ -565,6 +583,7 @@ tloho_lm <- function(Y, X, graph0, init_val=NULL, c = 0.5, tau0 = 1, MCMC = 5000
   
   cat("get Bayes estimator of partition (clusters) that minimizes loss ")
   cluster_est = salso::dlso(cluster_out, loss = loss)
+  if(intercept) print("IMPORTANT: intercept was set as TRUE, so that first beta corresponds to the intercept!")
   
   return(list('beta_out' = beta_est,
               'lambda2_out' = lambda2_out,
