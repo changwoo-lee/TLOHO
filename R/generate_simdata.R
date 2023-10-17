@@ -1,5 +1,6 @@
 # generating data for the simulation. Assuming 30 x 30 lattice graph. 
-generate_simdata <- function(n = 100, rhox = 0, SNR = 4, option = "twoclusters", ntest = 1000, seed = NULL){
+# scale = T option added in version 1.2.0
+generate_simdata <- function(n = 100, rhox = 0, SNR = 4, option = "twoclusters", ntest = 1000, seed = NULL, scale = T){
   
   set.seed(seed)
   
@@ -75,7 +76,7 @@ generate_simdata <- function(n = 100, rhox = 0, SNR = 4, option = "twoclusters",
     Xtest <- matrix(rnorm(ntest*m2), ntest, m2)
   }
   
-  X = scale(X)/sqrt(n-1) # column standardization
+  if(scale) X = scale(X)/sqrt(n-1) # column standardization
   
   sigma2 = var(X%*%beta)/SNR
   
