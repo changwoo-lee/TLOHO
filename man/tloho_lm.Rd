@@ -13,6 +13,7 @@ tloho_lm(
   init_val = NULL,
   c = 0.5,
   tau0 = 1,
+  intercept_var = 10000,
   nsave = 1000,
   nburn = 40000,
   nthin = 10,
@@ -27,7 +28,7 @@ tloho_lm(
 
 \item{X}{n by p matrix, real-valued predictors.}
 
-\item{intercept}{logical (default F), add 1's at the first column of X ?}
+\item{intercept}{logical (default F), add 1's at the first column of X ? See intercept_var for variance.}
 
 \item{scale}{logical (default T), if true X will be standardized so that all columns have L2 norm 1. currently cannot combined with scale = T}
 
@@ -38,6 +39,8 @@ tloho_lm(
 \item{c}{real between 0 and 1, (default 0.5), Model size penalization hyperparameter}
 
 \item{tau0}{positive real (default 1), shrinkage strength hyperparameter}
+
+\item{intercept_var}{positive real (default 10000). Set variance of the mean zero normal prior on the intercept as sigma2*intercept_var, where sigma2 is error variance parameter. Ignored if intercept = F}
 
 \item{nsave}{integer (default 1000), number of posteror sample saved. Total number of MCMC iteration = nburn + nsave*nthin.}
 

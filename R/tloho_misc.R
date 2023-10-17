@@ -37,19 +37,28 @@ evalmLogLike_lambdavec <- function(R, Xty, PRECISION, a0 = 0, b0 = 0, yty, n, bs
 }
 
 # function to get log posterior density (up to a constant)
-evalLogPost_HS <- function(beta_all, sigmasq_y, lambda2, tau2, k, Y, Xtrans, hyper, Comp) {
+# if intercept_var is provided, 
+evalLogPost_HS <- function(beta_all, sigmasq_y, lambda2, tau2, k, Y, Xtrans, hyper, Comp, intercept_var = NULL) {
   lambda = sqrt(lambda2)
   tau = sqrt(tau2)
   n = length(Y); p = length(k)
   a0 = hyper[1]; b0 = hyper[2]; tau0 = hyper[3]; c = hyper[4]
   log_prior =  -(a0/2+1)*log(sigmasq_y) - b0/(2*sigmasq_y) # prior for gamma
   #log_prior = log_prior + (c0/2-1)*log(lambda) - d0*lambda/2
-  log_prior = log_prior + sum(dcauchy(lambda, log = T)) + dcauchy(tau, scale = tau0, log = T) ####### prior for lambda and tau
-  
+  if(is.null(intercept_var)){
+     log_prior = log_prior + sum(dcauchy(lambda, log = T)) + dcauchy(tau, scale = tau0, log = T) ####### prior for lambda and tau
+  }else{
+    log_prior = log_prior + sum(dcauchy(lambda[-1], log = T)) + dcauchy(tau, scale = tau0, log = T) ####### prior for lambda and tau
+  }
   log_prior = log_prior + sum(-lchoose(n-Comp, k-Comp) + k*log(1-c))
   
   #log_prior = log_prior - sum(k)/2*(log(sigmasq_y)-log(lambda)) - lambda/(2*sigmasq_y)*sum(beta_all^2)
-  log_prior = log_prior + sum(dnorm(beta_all, mean = 0, sd = lambda*tau*sqrt(sigmasq_y), log =T))
+  if(is.null(intercept_var)){
+    log_prior = log_prior + sum(dnorm(beta_all, mean = 0, sd = lambda*tau*sqrt(sigmasq_y), log =T))
+  }else{
+    log_prior = log_prior + sum(dnorm(beta_all, mean = 0, sd = c(sqrt(intercept_var),lambda[-1]*tau)*sqrt(sigmasq_y), log =T))
+  }
+  
   log_like = -n/2*log(sigmasq_y) - sum((Y - Xtrans%*%beta_all)^2) / (2*sigmasq_y)
   return(log_like + log_prior)
 }
