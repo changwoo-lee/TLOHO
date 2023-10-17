@@ -69,7 +69,7 @@ tloho_lm <- function(Y, X, intercept = F, scale = T, graph0, init_val=NULL, c = 
     X = cbind(ones, X)
     graph0 = add_vertices(graph0, 1)
     graph0 = permute(graph0, c(2:(vcount(graph0)),1)) # first node corresponds to intercept, with singleton node
-    print("intercept =T, added 1's at the first column of design matrix X. Corresponding shrinkage parameter will fixed as 1")
+    print("intercept =T, added 1's at the first column of design matrix X")
   }else{
     intercept_var = NULL
   }
